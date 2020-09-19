@@ -18,6 +18,10 @@
 #define OLED_RESET 4 // not used
 Adafruit_SSD1306 display(OLED_RESET);
 
+// Define region
+// #define CFG_eu868 1
+ #define CFG_us915 1
+
 // Powermanagement chip AXP192
 AXP20X_Class axp;
 bool  axpIrq = 0;
@@ -70,7 +74,7 @@ const lmic_pinmap lmic_pins = {
   .dio = {26, 33, 32},
 };
 
-void do_send(osjob_t* j) {  
+void do_send(osjob_t* j) {
 
   // Check if there is not a current TX/RX job running
   if (LMIC.opmode & OP_TXRXPEND)
@@ -79,7 +83,7 @@ void do_send(osjob_t* j) {
     LoraStatus = "OP_TXRXPEND, not sending";
   }
   else
-  { 
+  {
     if (gps.checkGpsFix())
     {
       // Prepare upstream data transmission at the next possible time.
@@ -98,6 +102,34 @@ void do_send(osjob_t* j) {
   // Next TX is scheduled after TX_COMPLETE event.
 }
 
+/**
+ * Limit transfer to a single channel only.
+ * @param channel LMIC channel enum that is an int
+ */
+void forceTxSingleChannelDr(int channel) {
+  int channelLimit = 72;
+
+  #if defined(CFG_eu868)
+  channelLimit = 72;
+  #elif defined(CFG_us915)
+  channelLimit = 71;
+  #endif
+
+  for (int i = 0; i < channelLimit; i++) {
+    if (i != channel) {
+      LMIC_disableChannel(i);
+    }
+  }
+}
+
+#if defined(CFG_eu868)
+#define SF11 DR_SF11
+#define SF12 DR_SF12
+#elif defined(US_915)
+#define SF11 DR_SF11CR
+#define SF12 DR_SF12CR
+#endif
+
 void sf_set() {
     if (TX_Mode==0) {
       LMIC_setDrTxpow(DR_SF7,17);
@@ -112,10 +144,10 @@ void sf_set() {
       LMIC_setDrTxpow(DR_SF10,17);
       sprintf(sd,"SF10-17");
     } else if (TX_Mode==4) {
-      LMIC_setDrTxpow(DR_SF11,17);
+      LMIC_setDrTxpow(SF11,17);
       sprintf(sd,"SF11-17");
     } else if (TX_Mode==5) {
-      LMIC_setDrTxpow(DR_SF12,17);
+      LMIC_setDrTxpow(SF12,17);
       sprintf(sd,"SF12-17");
     } else if (TX_Mode==6) {
       LMIC_setDrTxpow(DR_SF7,14);
@@ -130,12 +162,12 @@ void sf_set() {
       LMIC_setDrTxpow(DR_SF10,14);
       sprintf(sd,"SF10-14");
     } else if (TX_Mode==10) {
-      LMIC_setDrTxpow(DR_SF11,14);
+      LMIC_setDrTxpow(SF11,14);
       sprintf(sd,"SF11-14");
     } else if (TX_Mode==11) {
-      LMIC_setDrTxpow(DR_SF12,14);
+      LMIC_setDrTxpow(SF12,14);
       sprintf(sd,"SF12-14");
-    } 
+    }
 }
 
 
@@ -164,7 +196,7 @@ void iv_set() {
     } else if (TX_Interval_Mode==7) {
       TX_INTERVAL = 3600;
       sprintf(iv,"60m");
-    } 
+    }
 }
 
 
@@ -246,7 +278,7 @@ void sf_select() {
         {
           TX_Interval_Mode = 0;
         }
-        iv_set();       
+        iv_set();
         prefs.begin("nvs", false);
         prefs.putString("IV_MODE", String(TX_Interval_Mode));
         prefs.end();
@@ -267,7 +299,7 @@ void sf_select() {
         prefs.putString("PORT", String(port));
         prefs.end();
       }
-      
+
       // Short-Press (SF&POWER)
       if (selection == 0)
       {
@@ -281,7 +313,7 @@ void sf_select() {
         prefs.putString("SF_MODE", String(TX_Mode));
         prefs.end();
       }
-    }  
+    }
 }
 
 
@@ -329,7 +361,7 @@ void onEvent (ev_t ev) {
     case EV_TXCOMPLETE:
       Serial.println(F("EV_TXCOMPLETE (includes waiting for RX windows)"));
       LoraStatus = "EV_TXCOMPLETE";
-      axp.setChgLEDMode(AXP20X_LED_OFF);  
+      axp.setChgLEDMode(AXP20X_LED_OFF);
       if (LMIC.txrxFlags & TXRX_ACK) {
         Serial.println(F("Received Ack"));
         LoraStatus = "Received Ack";
@@ -412,7 +444,7 @@ void setup() {
   axp.setPowerOutPut(AXP192_DCDC2, AXP202_ON);
   axp.setPowerOutPut(AXP192_EXTEN, AXP202_ON);
   axp.setPowerOutPut(AXP192_DCDC1, AXP202_ON);
-  
+
   // read preferences
   prefs.begin("nvs", false);
   TX_Mode = prefs.getString("SF_MODE", "0").toInt();
@@ -446,30 +478,31 @@ void setup() {
     display.print("ADR:OFF");
   } else {
     display.print("ADR:ON");
-  } 
+  }
   display.setCursor(42,00);
   display.print("IV:");
   display.print(iv);
   display.setCursor(0,0);
   display.print("PORT:"+String(port));
   display.display();
-  
+
   //Turn off WiFi and Bluetooth
   WiFi.mode(WIFI_OFF);
   btStop();
   gps.init();
-  
+
   // LMIC init
   os_init();
   // Reset the MAC state. Session and pending data transfers will be discarded.
   LMIC_reset();
- 
+
   LMIC_setClockError(MAX_CLOCK_ERROR * 10 / 100);
-  #ifndef OTAA 
+  #ifndef OTAA
   LMIC_setSession (0x1, DEVADDR, NWKSKEY, APPSKEY);
   #endif
 
-  #ifdef CFG_eu868
+  // Region-specific channel/band selection
+  #if defined(CFG_eu868)
   LMIC_setupChannel(0, 868100000, DR_RANGE_MAP(DR_SF12, DR_SF7),  BAND_CENTI);      // g-band
   LMIC_setupChannel(1, 868300000, DR_RANGE_MAP(DR_SF12, DR_SF7B), BAND_CENTI);      // g-band
   LMIC_setupChannel(2, 868500000, DR_RANGE_MAP(DR_SF12, DR_SF7),  BAND_CENTI);      // g-band
@@ -479,32 +512,36 @@ void setup() {
   LMIC_setupChannel(6, 867700000, DR_RANGE_MAP(DR_SF12, DR_SF7),  BAND_CENTI);      // g-band
   LMIC_setupChannel(7, 867900000, DR_RANGE_MAP(DR_SF12, DR_SF7),  BAND_CENTI);      // g-band
   LMIC_setupChannel(8, 868800000, DR_RANGE_MAP(DR_FSK,  DR_FSK),  BAND_MILLI);      // g2-band
-  #endif
-  
-  #ifdef CFG_us915
-    LMIC_selectSubBand(1);
-  
-    //Disable FSB2-8, channels 16-72
-    for (int i = 16; i < 73; i++) {
-      if (i != 10)
-        LMIC_disableChannel(i);
-    }
+  #elif defined(CFG_us915)
+  // NA-US channels 0-71 are configured automatically
+  // but only one group of 8 should (a subband) should be active
+  // TTN recommends the second sub band, 1 in a zero based count.
+  // https://github.com/TheThingsNetwork/gateway-conf/blob/master/US-global_conf.json
+  LMIC_selectSubBand(1);
   #endif
 
   // Disable link check validation
   LMIC_setLinkCheckMode(0);
-  // Disable/Enable ADR 
+  // Disable/Enable ADR
   LMIC_setAdrMode(adr);
-  // ??? TTN uses SF9 for its RX2 window.
-  LMIC.dn2Dr = DR_SF9;
 
+  #if defined(CFG_eu868) && !defined(OTAA)
+  // The Things Network uses the non-standard SF9BW125 data rate for RX2
+  // in Europe. This is only necessary for ABP. See:
+  // https://www.thethingsnetwork.org/docs/lorawan/frequency-plans.html
+  LMIC.dn2Dr = DR_SF9;
+  #endif
+
+  // Force 903.9 MHz (DR_SF7: channel "zero" on a US gateway)
+  // https://github.com/TheThingsNetwork/gateway-conf/blob/master/US-global_conf.json
+  forceTxSingleChannelDr(8);
   // Set data rate and transmit power for uplink (note: txpow seems to be ignored by the library)
-  // LMIC_setDrTxpow(DR_SF10,17); 
+  // LMIC_setDrTxpow(DR_SF10,17);
   sf_set();
 
   // Set Interval-Text corresponding to current setting
   iv_set();
-  
+
   do_send(&sendjob);
   axp.setChgLEDMode(AXP20X_LED_OFF);
   display.clearDisplay();
@@ -529,27 +566,27 @@ void loop() {
         if (isDimmed) {
           isDimmed = false;
           axp.setDCDC1Voltage(3300);
-          ledMode = AXP20X_LED_LOW_LEVEL;           
+          ledMode = AXP20X_LED_LOW_LEVEL;
         } else {
           isDimmed = true;
-          axp.setDCDC1Voltage(1700); 
-          ledMode = AXP20X_LED_OFF;           
+          axp.setDCDC1Voltage(1700);
+          ledMode = AXP20X_LED_OFF;
         }
-          
-      }      
+
+      }
       axp.clearIRQ();
   }
-  
+
   gps.encode();
   sf_select();
   if (lastMillis + 1000 < millis())
   {
     lastMillis = millis();
     VBAT = axp.getBattVoltage()/1000;
-    
+
     os_runloop_once();
     if (gps.checkGpsFix())
-    { 
+    {
       GPSonceFixed = true;
       noFix = false;
       gps.gdisplay(txBuffer2);
