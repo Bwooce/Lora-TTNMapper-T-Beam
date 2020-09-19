@@ -19,7 +19,7 @@ This repo contains a patched SSD1306 library from [smartnick](https://github.com
     - Reduce power consumption
     - Store frame counters
     - Support OTAA and ABP
-    - Add untested support for US915
+    - Add untested support for US902-928
 * [Bjoerns-TB/Lora-TTNMapper-T-Beam](https://github.com/Bjoerns-TB/Lora-TTNMapper-T-Beam)
     - Use the T-Beam OLED for information
     - Display LoRa, battery status on OLED
@@ -32,6 +32,41 @@ This repo contains a patched SSD1306 library from [smartnick](https://github.com
     - Selectable send port
     - Support newer hardware power management chips
     - Allow dimming of display
+
+### Other Forks
+
+Some of these other forks are not integrated into this repository, but may be useful for you.
+
+* [palbeda/Lora-TTNMapper-T-Beam](https://github.com/palbeda/Lora-TTNMapper-T-Beam)
+    - Support Cayenne TTN Integration based on TTGO-BEAM-CAR_TRACKER code
+    - Support Adafruit BMP280 Temperature/Humidity/Barometric Pressure sensor
+* [MichaelEFlip/Lora-TTNMapper-T-Beam](https://github.com/MichaelEFlip/Lora-TTNMapper-T-Beam)
+    - Convert to use [Platform IO](https://platformio.org)
+* [radforschung/Lora-TTNMapper-T-Beam](https://github.com/radforschung/Lora-TTNMapper-T-Beam)
+    - Use [MCCI LMIC Arduino](https://github.com/mcci-catena/arduino-lmic) fork; requires manual library editing
+    - Support an IMU (e.g. MPU 9250) for wake
+    - Adjusted battery voltage measurements
+* [PA4WD/Lora-TTNMapper-T-Beam](https://github.com/PA4WD/Lora-TTNMapper-T-Beam)
+    - Support ublox neo-7m module
+* [r8420/Lora-TTNMapper-T-Beam](https://github.com/r8420/Lora-TTNMapper-T-Beam)
+    - Adds OTAA support and sleep modes
+* [pulento/Lora-TTNMapper-T-Beam](https://github.com/pulento/Lora-TTNMapper-T-Beam)
+    - Use Platform IO
+    - Support US902-928
+    - Force 903.9 MHz for transmit
+    - Add downlink support
+* [pamribeirox/Lora-TTNMapper-T-Beam](https://github.com/pamribeirox/Lora-TTNMapper-T-Beam)
+    - Send dummy LoRa packets if missing GPS fix
+* [noppingen/Lora-TTNMapper-T-Beam-v10](https://github.com/noppingen/Lora-TTNMapper-T-Beam-v10)
+    - Case design available
+* [kizniche/ttgo-tbeam-sensor-node-bme280](https://github.com/kizniche/ttgo-tbeam-sensor-node-bme280)
+    - Support BME280 Temperature/Humidity/Barometric Pressure sensor
+    - Support US902-928 and EU863-870
+* [FabTangi/ttgo-ttn-ds18b20](https://github.com/FabTangi/ttgo-ttn-ds18b20)
+    - Support US902-928 and AU915-928
+* [tekk/TTGO-T-Beam-Car-Tracker](https://github.com/tekk/TTGO-T-Beam-Car-Tracker)
+    - Cayenne backend for visualization
+    - BME280 support
 
 ## Sample Images
 
