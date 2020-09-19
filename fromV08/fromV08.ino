@@ -532,11 +532,11 @@ void setup() {
   LMIC.dn2Dr = DR_SF9;
   #endif
 
-  // Force 903.9 MHz (DR_SF7: channel "zero" on a US gateway)
+  // Force 903.9 MHz
   // https://github.com/TheThingsNetwork/gateway-conf/blob/master/US-global_conf.json
   forceTxSingleChannelDr(8);
   // Set data rate and transmit power for uplink (note: txpow seems to be ignored by the library)
-  // LMIC_setDrTxpow(DR_SF10,17);
+  LMIC_setDrTxpow(DR_SF7, 17);
   sf_set();
 
   // Set Interval-Text corresponding to current setting
